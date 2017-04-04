@@ -152,12 +152,34 @@ def save_photo(s, url, out_dir):
 
 def save_photo_caption(summary, sdate, caption, out_dir, slug, sformat):
     # Output filename
-    filename = slug + "_caption." + sformat
+    filename = slug + "_photo." + sformat
     html_out = os.path.join(out_dir, filename)
 
     # INFO
     uprint('    ' + html_out)
     create_html_with_template(summary, summary, sdate, caption, out_dir, html_out)
+
+def save_text_post(title, summary, sdate, body, out_dir, slug, sformat):
+    # Output filename
+    filename = slug + "_text." + sformat
+    html_out = os.path.join(out_dir, filename)
+
+    # INFO
+    uprint('    ' + html_out)
+    create_html_with_template(title, summary, sdate, body, out_dir, html_out)
+
+def save_link_post(title, summary, sdate, body, out_dir, slug, sformat):
+    # Output filename
+    filename = slug + "_link." + sformat
+    html_out = os.path.join(out_dir, filename)
+
+    # INFO
+    uprint('    ' + html_out)
+    create_html_with_template(title, summary, sdate, body, out_dir, html_out)
+
+def create_link_post_body():
+    pass
+    return
 
 def save_post(json):
     # Get the GMT date components for this post
@@ -179,7 +201,7 @@ def save_post(json):
         # Save photo captions to HTML
         save_photo_caption(json['summary'], str(json['date']), json['caption'], out_dir, json['slug'], json['format'])
 
-        # Download photo in highest resolution
+        # Loop through to find and download photo in highest res
         for photo in json['photos']:
             photo_url = photo['alt_sizes'][0]['url']
 
@@ -188,7 +210,23 @@ def save_post(json):
             # Download photo
             save_photo(s, photo_url, out_dir)
 
-    
+    elif json['type'] == 'text':
+
+        save_text_post(json['title'], json['summary'], str(json['date']), json['body'], out_dir, json['slug'], json['format'])
+
+
+    # elif json['type'] == 'link':
+    #
+    #     save_link_post(json['summary'], str(json['date']), json['caption'], out_dir, json['slug'], json['format'])
+    #
+    #     # Loop through to find and download photo in highest res
+    #     for photo in json['photos']:
+    #         photo_url = photo['alt_sizes'][0]['url']
+    #
+    #         # INFO
+    #         uprint('    ' + photo_url)
+    #         # Download photo
+    #         save_photo(s, photo_url, out_dir)
 
 def main():
     # Create our parser
