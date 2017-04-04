@@ -41,6 +41,88 @@ def get_json_page(url, offset=0, limit=20):
     return json.loads(text)
 
 
+def create_html_with_string(title, summary, sdate, body, out_dir, slug, sformat):
+    # Output filename
+    filename = slug + "." + sformat
+    html_out = os.path.join(out_dir, filename)
+
+    # Doc Declaration
+    str_doc = "<!DOCTYPE html>"
+
+    # Head Open
+    str_html_head_open = "<html lang='en'><head><meta charset='utf-8'><meta http-equiv='X-UA-Compatible' content='IE=edge'><meta name='viewport' content='width=device-width, initial-scale=1'><!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->"
+
+    # Title in Head tag
+    str_title = "<title>" + title + "</title>"
+
+    # Head Close
+    str_head_close = "<!-- Bootstrap --><link href='css/bootstrap.min.css' rel='stylesheet'><!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries --><!-- WARNING: Respond.js doesn't work if you view the page via file:// --><!--[if lt IE 9]><script src='https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js'></script><script src='https://oss.maxcdn.com/respond/1.4.2/respond.min.js'></script><![endif]--></head>"
+
+    # Body Content
+    str_body_open = "<body><h1>" + summary + "</h1><strong>Posted on: </strong>" + sdate + "<div>" + body + "<div>"
+
+    # Body & HTML Close
+    str_body_html_close = "<!-- jQuery (necessary for Bootstrap's JavaScript plugins) --><script src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js'></script><!-- Include all compiled plugins (below), or include individual files as needed --><script src='js/bootstrap.min.js'></script></body></html>"
+
+    # Ensure the out directory exists
+    try:
+        os.makedirs(out_dir)
+    except OSError:
+        pass
+
+    strHTML = str_doc + str_html_head_open + str_title + str_head_close + str_body_open + str_body_html_close
+    with open(html_out, 'w') as f:
+        f.write(strHTML)
+
+
+def create_html_with_template(title, summary, sdate, body, out_dir, html_out):
+
+
+    page_template = """
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+        <title>{title}</title>
+
+        <!-- Bootstrap -->
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+          <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+          <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+      </head>
+      <body>
+        <h1>{summary}</h1>
+        <strong>Posted on: </strong>{sdate}
+        <div>
+            {body}
+        </div>
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <!-- Include all compiled plugins (below), or include individual files as needed -->
+        <script src="js/bootstrap.min.js"></script>
+      </body>
+    </html>
+    """
+
+    # Ensure the out directory exists
+    try:
+        os.makedirs(out_dir)
+    except OSError:
+        pass
+
+    page_template = page_template.format(title=title, summary=summary, sdate=sdate, body=body)
+    with open(html_out, 'w') as f:
+        f.write(page_template)
+
+
 def save_photo(s, url, out_dir):
     # Get the URL path
     # url_path = urlparse.urlsplit(url).path
@@ -68,7 +150,14 @@ def save_photo(s, url, out_dir):
                 for chunk in resp.iter_content(chunk_size=1024):
                     fd.write(chunk)
 
+def save_photo_caption(summary, sdate, caption, out_dir, slug, sformat):
+    # Output filename
+    filename = slug + "_caption." + sformat
+    html_out = os.path.join(out_dir, filename)
 
+    # INFO
+    uprint('    ' + html_out)
+    create_html_with_template(summary, summary, sdate, caption, out_dir, html_out)
 
 def save_post(json):
     # Get the GMT date components for this post
@@ -87,13 +176,19 @@ def save_post(json):
 
     # Grab all the photos
     if json['type'] == 'photo':
+        # Save photo captions to HTML
+        save_photo_caption(json['summary'], str(json['date']), json['caption'], out_dir, json['slug'], json['format'])
 
+        # Download photo in highest resolution
         for photo in json['photos']:
             photo_url = photo['alt_sizes'][0]['url']
 
             # INFO
             uprint('    ' + photo_url)
+            # Download photo
             save_photo(s, photo_url, out_dir)
+
+    
 
 def main():
     # Create our parser
