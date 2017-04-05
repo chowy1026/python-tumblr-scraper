@@ -33,7 +33,7 @@ def get_json_page(url, offset=0, limit=20):
 
     # Fetch the page
     r = requests.get(url, params=args)
-    uprint('    ' + r.url)
+    uprint('Request url with params :  %s ' % (r.url,))
 
     # Strip the jsonp garbage
     text = r.text.strip()[45:-1]
@@ -180,8 +180,7 @@ def save_photo_caption(summary, sdate, caption, photo_url, out_dir, slug, sforma
     <p>{caption}</p>
     """
     body_template = body_template.format(photo_out=relative_photo_path, summary=summary, caption=caption)
-    # INFO
-    uprint('    ' + html_out)
+
     create_html_with_template(summary, summary, sdate, body_template, out_dir, html_out)
 
 
@@ -216,8 +215,6 @@ def save_link_post(title, summary, sdate, url, photo_url, link_author, excerpt, 
 
     body_template = img_template + link_template if photo_url else link_template
 
-    # INFO
-    uprint('    ' + html_out)
     create_html_with_template(title, summary, sdate, body_template, out_dir, html_out)
 
 
@@ -230,9 +227,6 @@ def save_post(json):
     # Find the out directory for this post
     out_dir = os.path.join(out, year, month, day, json['slug'])
 
-    # # INFO
-    # uprint('     ' + out_dir)
-
     # Create our HTTP session
     s = requests.Session()
 
@@ -242,10 +236,6 @@ def save_post(json):
         # Loop through to find and download photo in highest res
         for photo in json['photos']:
             photo_url = photo['original_size']['url']
-
-            # INFO
-            uprint('    ' + photo_url)
-
 
             # Download photo
             save_photo(s, photo_url, out_dir)
@@ -259,8 +249,6 @@ def save_post(json):
     elif json['type'] == 'link':
         photo_url = None
         if json.get('link_image'):
-            uprint('    ' + json.get('link_image'))
-            uprint('    ' + str(json.get('photos')))
 
             for photo in json['photos']:
                 photo_url = photo['original_size']['url']
@@ -339,12 +327,16 @@ def main():
     # results until we've archived the entire blog.
     offset = 0
     limit = 20
+    saved_count = 0
     while offset < total_count:
         json = get_json_page(blog_url, offset, limit)
 
         # Loop over each post in this batch
         for post in json['posts']:
             save_post(post)
+            saved_count += 1
+            # INFO
+            uprint('%s post saved.' % (saved_count,))
 
         # Increment and grab the next batch of posts
         offset += limit
