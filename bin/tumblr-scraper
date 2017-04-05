@@ -28,11 +28,12 @@ def get_json_page(url, offset=0, limit=20):
     args = {}
     args['offset'] = offset
     args['limit'] = limit
-    args['api_key'] = "fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4"
+    args['api_key'] = "U0O3mFJmhYXPWsXXnfkDdxT6UZCxaQeORNKjrwAQRiPhmCx1KL"
+    #  "fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4"
 
     # Fetch the page
     r = requests.get(url, params=args)
-    # print(r.url)
+    uprint('    ' + r.url)
 
     # Strip the jsonp garbage
     text = r.text.strip()[45:-1]
@@ -71,8 +72,12 @@ def create_html_with_string(title, summary, sdate, body, out_dir, slug, sformat)
         pass
 
     strHTML = str_doc + str_html_head_open + str_title + str_head_close + str_body_open + str_body_html_close
-    with open(html_out, 'w') as f:
-        f.write(strHTML)
+
+    if os.path.isfile(html_out):
+        return
+    else:
+        with open(html_out, 'w') as f:
+            f.write(strHTML)
 
 
 def create_html_with_template(title, summary, sdate, body, out_dir, html_out):
@@ -119,11 +124,14 @@ def create_html_with_template(title, summary, sdate, body, out_dir, html_out):
         pass
 
     page_template = page_template.format(title=title, summary=summary, sdate=sdate, body=body)
-    with open(html_out, 'w') as f:
-        f.write(page_template)
+    if os.path.isfile(html_out):
+        return
+    else:
+        with open(html_out, 'w') as f:
+            f.write(page_template)
 
 
-def save_photo(s, url, out_dir):
+def get_photo_out(url, out_dir):
     # Get the URL path
     # url_path = urlparse.urlsplit(url).path
     url_path = urllib.parse.urlparse(url).path
@@ -133,7 +141,10 @@ def save_photo(s, url, out_dir):
 
     # Set our local out file
     photo_out = os.path.join(out_dir, filename)
+    return photo_out
 
+def save_photo(s, url, out_dir):
+    photo_out = get_photo_out(url, out_dir)
     # Ensure the out directory exists
     try:
         os.makedirs(out_dir)
@@ -150,14 +161,23 @@ def save_photo(s, url, out_dir):
                 for chunk in resp.iter_content(chunk_size=1024):
                     fd.write(chunk)
 
-def save_photo_caption(summary, sdate, caption, out_dir, slug, sformat):
+
+def save_photo_caption(summary, sdate, caption, url, out_dir, slug, sformat):
     # Output filename
     filename = slug + "_photo." + sformat
     html_out = os.path.join(out_dir, filename)
-
+    photo_out = get_photo_out(url, out_dir)
+    # body template for photo posts
+    body_template = """
+    <img src = "{photo_out}"
+         alt = "{summary}" />
+    <p>{caption}</p>
+    """
+    body_template = body_template.format(photo_out=photo_out, summary=summary, caption=caption)
     # INFO
     uprint('    ' + html_out)
-    create_html_with_template(summary, summary, sdate, caption, out_dir, html_out)
+    create_html_with_template(summary, summary, sdate, body_template, out_dir, html_out)
+
 
 def save_text_post(title, summary, sdate, body, out_dir, slug, sformat):
     # Output filename
@@ -168,18 +188,25 @@ def save_text_post(title, summary, sdate, body, out_dir, slug, sformat):
     uprint('    ' + html_out)
     create_html_with_template(title, summary, sdate, body, out_dir, html_out)
 
-def save_link_post(title, summary, sdate, body, out_dir, slug, sformat):
+
+def save_link_post(title, summary, sdate, url, link_image, link_author, excerpt, publisher, description, out_dir, slug, sformat):
     # Output filename
     filename = slug + "_link." + sformat
     html_out = os.path.join(out_dir, filename)
 
+    # body template for link posts
+    body_template = """
+    <a href="url" target="_blank"><img src = "{link_image}"
+         alt = "{title}" /></a><br/>
+    <p>"{excerpt}..." by {link_author} @ {publisher}</p> 
+    <p>{description}</p>
+    """
+    body_template = body_template.format(link_image=link_image, title=title, excerpt=excerpt, link_author=link_author, publisher=publisher, description=description)
+
     # INFO
     uprint('    ' + html_out)
-    create_html_with_template(title, summary, sdate, body, out_dir, html_out)
+    create_html_with_template(title, summary, sdate, body_template, out_dir, html_out)
 
-def create_link_post_body():
-    pass
-    return
 
 def save_post(json):
     # Get the GMT date components for this post
@@ -198,8 +225,6 @@ def save_post(json):
 
     # Grab all the photos
     if json['type'] == 'photo':
-        # Save photo captions to HTML
-        save_photo_caption(json['summary'], str(json['date']), json['caption'], out_dir, json['slug'], json['format'])
 
         # Loop through to find and download photo in highest res
         for photo in json['photos']:
@@ -207,26 +232,30 @@ def save_post(json):
 
             # INFO
             uprint('    ' + photo_url)
+
             # Download photo
             save_photo(s, photo_url, out_dir)
+            # Save photo captions to HTML
+            save_photo_caption(json['summary'], str(json['date']), json['caption'], photo_url, out_dir, json['slug'], json['format'])
 
     elif json['type'] == 'text':
 
         save_text_post(json['title'], json['summary'], str(json['date']), json['body'], out_dir, json['slug'], json['format'])
 
+    elif json['type'] == 'link':
+        # uprint('    ' + json.get('photos'))
+        # if json.get('photos'):
+        #     for photo in json['photos']:
+        #         photo_url = photo['alt_sizes'][0]['url']
+        #         uprint('    ' + photo_url)
+        #         # Download photo
+        #         save_photo(s, photo_url, out_dir)
+        # else:
+        #     photo_url = None
 
-    # elif json['type'] == 'link':
-    #
-    #     save_link_post(json['summary'], str(json['date']), json['caption'], out_dir, json['slug'], json['format'])
-    #
-    #     # Loop through to find and download photo in highest res
-    #     for photo in json['photos']:
-    #         photo_url = photo['alt_sizes'][0]['url']
-    #
-    #         # INFO
-    #         uprint('    ' + photo_url)
-    #         # Download photo
-    #         save_photo(s, photo_url, out_dir)
+        save_link_post(json['title'], json['summary'], str(json['date']), json['url'], "", json['link_author'], json['excerpt'], json['publisher'], json['description'], out_dir, json['slug'], json['format'])
+
+
 
 def main():
     # Create our parser
