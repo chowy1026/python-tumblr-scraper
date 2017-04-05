@@ -8,7 +8,8 @@ I have made the following modifications:
 - modified to support tumblr API v2
 - changed post type photo archive to archive photo caption as html
 - modified looping through posts using limit and offset
-- added param auth_key to JSON request url
+- added param api_key to JSON request url
+- add blog_name as a base directory of archives
 
 
 #### Additional Functions:    
@@ -42,11 +43,14 @@ After installation, type `tumblr-scraper --help`:
       --quiet               suppress all output except errors
 
 To archive all posts:
-    tumblr-scraper 'bikingacrosscanada'
+    `tumblr-scraper '{blog_name}'`
 
 To select archive by post type:
-    tumblr-scraper 'bikingacrosscanada' -ptype='{post_type}'
-    # {post_type} options are: 'photo', 'link', 'text'
+    `tumblr-scraper '{blog_name}' -ptype='{post_type}'`
+
+{blog_name} must NOT include '.tumblr.com'
+
+{post_type} options are: 'photo', 'link', 'text'
 
 
 ## API Reference

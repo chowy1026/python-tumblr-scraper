@@ -24,12 +24,11 @@ def get_blog_url(name, post_type=None):
 
     # "http://{name}.tumblr.com/api/read/json".format(name=name)
 
-def get_json_page(url, offset=0, limit=20):
+def get_json_page(url, api_key, offset=0, limit=20):
     args = {}
     args['offset'] = offset
     args['limit'] = limit
-    args['api_key'] = "U0O3mFJmhYXPWsXXnfkDdxT6UZCxaQeORNKjrwAQRiPhmCx1KL"
-    #  "fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4"
+    args['api_key'] = api_key
 
     # Fetch the page
     r = requests.get(url, params=args)
@@ -225,7 +224,7 @@ def save_post(json):
     day = json['date'][8:10]
 
     # Find the out directory for this post
-    out_dir = os.path.join(out, year, month, day, json['slug'])
+    out_dir = os.path.join(out, json['blog_name'], year, month, day, json['slug'])
 
     # Create our HTTP session
     s = requests.Session()
@@ -271,7 +270,9 @@ def main():
 
     # Set up our command-line arguments
     parser.add_argument('blog_name')
+    parser.add_argument('api_key')
     parser.add_argument('-ptype', '--post_type', default=None, help='select post type to archive')
+
 
     parser.add_argument('-o', '--out', default=os.getcwd(),
             help='set the out directory for the archive')
@@ -301,10 +302,11 @@ def main():
 
     # Get our args
     blog_name = args.blog_name
+    api_key = args.api_key
     post_type = args.post_type
-    # blog_url = get_blog_url(blog_name)
+
     blog_url = get_blog_url(blog_name, post_type)
-    # print("blog_url: ", blog_url)
+
 
 
     # INFO
@@ -312,7 +314,7 @@ def main():
 
     # Get the total post count
     # Set limit to higher than to total blog posts.
-    json = get_json_page(blog_url, 0, 1000)
+    json = get_json_page(blog_url, api_key, 0, 1000)
 
     # total_count = json['posts-total']
     total_count = json['total_posts']
@@ -329,7 +331,7 @@ def main():
     limit = 20
     saved_count = 0
     while offset < total_count:
-        json = get_json_page(blog_url, offset, limit)
+        json = get_json_page(blog_url, api_key, offset, limit)
 
         # Loop over each post in this batch
         for post in json['posts']:
