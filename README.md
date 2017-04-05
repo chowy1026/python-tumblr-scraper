@@ -34,6 +34,7 @@ After installation, type `tumblr-scraper --help`:
 
     positional arguments:
       blog_name
+      api_key
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -43,10 +44,10 @@ After installation, type `tumblr-scraper --help`:
       --quiet               suppress all output except errors
 
 To archive all posts:
-    `tumblr-scraper '{blog_name}'`
+    `tumblr-scraper '{blog_name}' '{api_key}'`
 
 To select archive by post type:
-    `tumblr-scraper '{blog_name}' -ptype='{post_type}'`
+    `tumblr-scraper '{blog_name}' '{api_key}' -ptype='{post_type}'`
 
 {blog_name} must NOT include '.tumblr.com'
 
@@ -86,4 +87,4 @@ Many thanks to [Tristan Waddington][df2cd640] for the initial version.
     limitations under the License.
 
 
-For README from [original repo][958689cf], read README.rst.
+For README from [original repo][958689cf], read README_orig.rst.
