@@ -130,9 +130,8 @@ def create_html_with_template(title, summary, sdate, body, out_dir, html_out):
         with open(html_out, 'w') as f:
             f.write(page_template)
 
+def get_local_photo_path(url, out_dir):
 
-def get_photo_out(url, out_dir):
-    # Get the URL path
     # url_path = urlparse.urlsplit(url).path
     url_path = urllib.parse.urlparse(url).path
 
@@ -144,7 +143,10 @@ def get_photo_out(url, out_dir):
     return photo_out
 
 def save_photo(s, url, out_dir):
-    photo_out = get_photo_out(url, out_dir)
+
+    # Get the URL path
+    photo_out = get_local_photo_path(url, out_dir)
+
     # Ensure the out directory exists
     try:
         os.makedirs(out_dir)
@@ -162,18 +164,22 @@ def save_photo(s, url, out_dir):
                     fd.write(chunk)
 
 
-def save_photo_caption(summary, sdate, caption, url, out_dir, slug, sformat):
+def save_photo_caption(summary, sdate, caption, photo_url, out_dir, slug, sformat):
     # Output filename
     filename = slug + "_photo." + sformat
     html_out = os.path.join(out_dir, filename)
-    photo_out = get_photo_out(url, out_dir)
+
+    # Get filename from path, same directory with HTML
+    relative_photo_path = os.path.basename(photo_url)
+
     # body template for photo posts
     body_template = """
     <img src = "{photo_out}"
-         alt = "{summary}" />
+         alt = "{summary}" /><br/>
+    <h4>{summary}</h4>
     <p>{caption}</p>
     """
-    body_template = body_template.format(photo_out=photo_out, summary=summary, caption=caption)
+    body_template = body_template.format(photo_out=relative_photo_path, summary=summary, caption=caption)
     # INFO
     uprint('    ' + html_out)
     create_html_with_template(summary, summary, sdate, body_template, out_dir, html_out)
@@ -184,24 +190,31 @@ def save_text_post(title, summary, sdate, body, out_dir, slug, sformat):
     filename = slug + "_text." + sformat
     html_out = os.path.join(out_dir, filename)
 
-    # INFO
-    uprint('    ' + html_out)
+
     create_html_with_template(title, summary, sdate, body, out_dir, html_out)
 
 
-def save_link_post(title, summary, sdate, url, link_image, link_author, excerpt, publisher, description, out_dir, slug, sformat):
+def save_link_post(title, summary, sdate, url, photo_url, link_author, excerpt, publisher, description, out_dir, slug, sformat):
     # Output filename
     filename = slug + "_link." + sformat
     html_out = os.path.join(out_dir, filename)
 
-    # body template for link posts
-    body_template = """
-    <a href="url" target="_blank"><img src = "{link_image}"
-         alt = "{title}" /></a><br/>
-    <p>"{excerpt}..." by {link_author} @ {publisher}</p> 
+    # Get filename from path, same directory with HTML
+    relative_photo_path = os.path.basename(photo_url) if photo_url else None
+
+    # link template for link posts
+    img_template = """
+        <img src = "{relative_photo_path}" alt = "{title}" /><br/>
+    """.format(relative_photo_path=relative_photo_path, title=title)
+
+    # link template for link posts
+    link_template = """
+    <a href="{url}" target="_blank"><h4>{summary}</h4></a><br/>
+    <p>"{excerpt}..." by {link_author} @ {publisher}</p>
     <p>{description}</p>
-    """
-    body_template = body_template.format(link_image=link_image, title=title, excerpt=excerpt, link_author=link_author, publisher=publisher, description=description)
+    """.format(url=url, summary=summary, excerpt=excerpt, link_author=link_author, publisher=publisher, description=description)
+
+    body_template = img_template + link_template if photo_url else link_template
 
     # INFO
     uprint('    ' + html_out)
@@ -217,8 +230,8 @@ def save_post(json):
     # Find the out directory for this post
     out_dir = os.path.join(out, year, month, day, json['slug'])
 
-    # INFO
-    uprint(out_dir)
+    # # INFO
+    # uprint('     ' + out_dir)
 
     # Create our HTTP session
     s = requests.Session()
@@ -228,10 +241,11 @@ def save_post(json):
 
         # Loop through to find and download photo in highest res
         for photo in json['photos']:
-            photo_url = photo['alt_sizes'][0]['url']
+            photo_url = photo['original_size']['url']
 
             # INFO
             uprint('    ' + photo_url)
+
 
             # Download photo
             save_photo(s, photo_url, out_dir)
@@ -243,17 +257,21 @@ def save_post(json):
         save_text_post(json['title'], json['summary'], str(json['date']), json['body'], out_dir, json['slug'], json['format'])
 
     elif json['type'] == 'link':
-        # uprint('    ' + json.get('photos'))
-        # if json.get('photos'):
-        #     for photo in json['photos']:
-        #         photo_url = photo['alt_sizes'][0]['url']
-        #         uprint('    ' + photo_url)
-        #         # Download photo
-        #         save_photo(s, photo_url, out_dir)
-        # else:
-        #     photo_url = None
+        photo_url = None
+        if json.get('link_image'):
+            uprint('    ' + json.get('link_image'))
+            uprint('    ' + str(json.get('photos')))
 
-        save_link_post(json['title'], json['summary'], str(json['date']), json['url'], "", json['link_author'], json['excerpt'], json['publisher'], json['description'], out_dir, json['slug'], json['format'])
+            for photo in json['photos']:
+                photo_url = photo['original_size']['url']
+
+                # Download photo
+                save_photo(s, photo_url, out_dir)
+        else:
+            photo_url = None
+
+        # link post to HTML
+        save_link_post(json['title'], json['summary'], str(json['date']), json['url'], photo_url, json['link_author'], json['excerpt'], json['publisher'], json['description'], out_dir, json['slug'], json['format'])
 
 
 
