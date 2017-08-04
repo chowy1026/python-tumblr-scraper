@@ -62,8 +62,6 @@ Reference to [tumblr API v2][b25500f0].
 
 ## TO-DOs:
 
-- honor {out} as base dir for archive when available instead of fixed {blog_name}
-- Implement bootstrap
 
 ## Contributors
 
